@@ -9,8 +9,8 @@ export function openDatabase(path: string): DatabaseSync {
     mkdirSync(dirname(path), { recursive: true });
   }
   const db = new DatabaseSync(path);
-  db.exec("PRAGMA journal_mode = WAL");
   db.exec("PRAGMA busy_timeout = 5000");
+  db.exec("PRAGMA journal_mode = WAL");
   migrate(db);
   return db;
 }
@@ -22,4 +22,10 @@ const cache = globalThis as typeof globalThis & { gravityDatabase?: DatabaseSync
 export function getDatabase(): DatabaseSync {
   cache.gravityDatabase ??= openDatabase(process.env.DATABASE_PATH || "data/gravity.db");
   return cache.gravityDatabase;
+}
+
+/** Closes the process-wide connection, if open: the last close folds the write-ahead log into the main file. */
+export function closeDatabase(): void {
+  cache.gravityDatabase?.close();
+  delete cache.gravityDatabase;
 }

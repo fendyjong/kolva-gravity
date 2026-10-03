@@ -1,8 +1,9 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
-import { openDatabase } from "./index";
+import { DatabaseSync } from "node:sqlite";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { closeDatabase, getDatabase, openDatabase } from "./index";
 import { MIGRATIONS, migrate } from "./migrations";
 
 const COLUMNS = [
@@ -62,5 +63,38 @@ describe("openDatabase", () => {
     const url = "https://github.com/o/r/issues/1";
     insert.run("first", url, t, null, null);
     expect(() => insert.run("second", url, t, null, null)).toThrow(/UNIQUE constraint failed/);
+  });
+});
+
+describe("closeDatabase", () => {
+  afterEach(() => {
+    closeDatabase();
+    vi.unstubAllEnvs();
+  });
+
+  it("folds the write-ahead log into the main file and forgets the connection", () => {
+    const dir = mkdtempSync(join(tmpdir(), "gravity-close-"));
+    const path = join(dir, "gravity.db");
+    vi.stubEnv("DATABASE_PATH", path);
+    try {
+      const db = getDatabase();
+      db.prepare(
+        "INSERT INTO tasks (description, quadrant, position, created_at) VALUES ('kept', 2, 0, '2026-10-03T02:00:00.000Z')",
+      ).run();
+      expect(existsSync(`${path}-wal`)).toBe(true);
+
+      closeDatabase();
+      expect(existsSync(`${path}-wal`)).toBe(false);
+      // The main file alone now holds the schema and the row.
+      const copy = new DatabaseSync(path);
+      expect(copy.prepare("SELECT description FROM tasks").all().map((row) => row.description)).toEqual(["kept"]);
+      copy.close();
+      // A later getDatabase() opens a fresh connection; closing twice is harmless.
+      expect(getDatabase() === db).toBe(false);
+      closeDatabase();
+      closeDatabase();
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

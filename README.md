@@ -34,13 +34,15 @@ The database lives in `./data/gravity.db` on the host (`/data/gravity.db` in the
 
 ## Back up
 
-Everything is in `data/gravity.db`. Stop the container so SQLite folds its write-ahead log into the file, copy it, and start again:
+Everything is in `data/`. Stopping the container closes the database, which folds the write-ahead log into `gravity.db`. Stop, copy every database file (so the copy is complete even if a `gravity.db-wal` is ever left behind), and start again:
 
 ```bash
 docker compose stop
-cp data/gravity.db "gravity-$(date +%F).db"
+mkdir -p "backup-$(date +%F)" && cp data/gravity.db* "backup-$(date +%F)/"
 docker compose start
 ```
+
+To restore, stop the container, copy the files from the backup directory back into `data/`, and start it.
 
 ## MCP
 
