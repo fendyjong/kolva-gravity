@@ -41,3 +41,22 @@ docker compose stop
 cp data/gravity.db "gravity-$(date +%F).db"
 docker compose start
 ```
+
+## MCP
+
+Gravity serves MCP over Streamable HTTP at `https://gravity.local.zeven.day/mcp`: stateless, `POST` only, and without auth — anyone on the LAN or the WireGuard VPN can call it.
+
+Claude Code:
+
+```bash
+claude mcp add --transport http --scope user gravity https://gravity.local.zeven.day/mcp
+claude mcp list   # gravity should show as connected
+```
+
+Any other MCP client:
+
+```json
+{ "mcpServers": { "gravity": { "type": "http", "url": "https://gravity.local.zeven.day/mcp" } } }
+```
+
+Tools: `get_matrix`, `add_task`, `update_task`, `move_task`, `reorder_quadrant`, `complete_task`, `reopen_task`, `drop_task`. A broken rule comes back as an error result that says what is needed, e.g. `task 12 is completed; reopen it first`.
