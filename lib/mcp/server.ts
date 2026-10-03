@@ -1,6 +1,7 @@
 import { McpServer, WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/server";
 import * as z from "zod";
 import { TaskError, type TaskStore, type TaskView } from "@/lib/tasks";
+import { triagePrompt } from "./triage";
 
 type ToolResult = { content: { type: "text"; text: string }[]; isError?: boolean };
 
@@ -125,6 +126,21 @@ export function createMcpServer(store: TaskStore): McpServer {
       inputSchema: z.object({ id: idField }),
     },
     ({ id }) => respond(() => store.drop(id)),
+  );
+
+  server.registerPrompt(
+    "triage",
+    {
+      title: "Triage the matrix",
+      description:
+        "Rearrange the matrix: deal with carried-over tasks, promote what keeps getting put off, keep quadrant 1 small, and shortlist at most 10 GitHub issues from `repos`.",
+      argsSchema: z.object({
+        repos: z.string().optional().describe("Comma-separated owner/repo list, e.g. fendyjong/kolva-gravity,fendyjong/kolva-sim"),
+      }),
+    },
+    ({ repos }) => ({
+      messages: [{ role: "user", content: { type: "text", text: triagePrompt(repos) } }],
+    }),
   );
 
   return server;

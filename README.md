@@ -60,3 +60,24 @@ Any other MCP client:
 ```
 
 Tools: `get_matrix`, `add_task`, `update_task`, `move_task`, `reorder_quadrant`, `complete_task`, `reopen_task`, `drop_task`. A broken rule comes back as an error result that says what is needed, e.g. `task 12 is completed; reopen it first`.
+
+## Triage
+
+With the `gravity` MCP server added to Claude Code (see above), ask it to rearrange the matrix:
+
+```
+/mcp__gravity__triage fendyjong/kolva-gravity,fendyjong/kolva-sim
+```
+
+The one argument, `repos`, is an optional comma-separated `owner/repo` list. The prompt (`lib/mcp/triage.md`) has the LLM:
+
+1. read the matrix;
+2. split or move down every quadrant-1 task carried over 1 day or more;
+3. promote tasks that keep getting put off;
+4. keep quadrant 1 at 5 tasks or fewer;
+5. shortlist **at most 10** of the most important open issues from `repos` with `gh` — never all of them, and running it again creates no duplicates;
+6. complete tasks whose issues have closed;
+7. reorder every quadrant;
+8. finish with a short summary of what moved and why.
+
+Steps 5 and 6 need the `gh` CLI, logged in, wherever the LLM runs.
