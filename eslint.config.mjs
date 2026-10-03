@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Task worktrees and WDD scratch live inside the plan worktree.
+    ".claude/**",
+    ".pitcall/**",
   ]),
 ]);
 

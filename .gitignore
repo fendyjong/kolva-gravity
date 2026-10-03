@@ -42,3 +42,6 @@ next-env.d.ts
 
 # git worktrees (Claude Code)
 /.claude/worktrees/
+
+# SQLite data (the compose volume)
+/data/
