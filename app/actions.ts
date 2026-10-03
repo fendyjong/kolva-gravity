@@ -5,12 +5,16 @@ import { getTaskStore, TaskError } from "@/lib/tasks";
 
 export type ActionResult = { error: string | null };
 
-/** Runs one task-module change; a broken rule comes back as a message instead of an exception. */
+/** Runs one task-module change; a broken rule comes back as a message instead of an exception, and both outcomes re-render. */
 async function run(change: () => unknown): Promise<ActionResult> {
   try {
     change();
   } catch (error) {
-    if (error instanceof TaskError) return { error: error.message };
+    // Re-render on a broken rule too: the task may have been changed elsewhere, so the screen is stale.
+    if (error instanceof TaskError) {
+      revalidatePath("/");
+      return { error: error.message };
+    }
     throw error;
   }
   revalidatePath("/");

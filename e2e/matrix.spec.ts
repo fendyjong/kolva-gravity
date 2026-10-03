@@ -36,6 +36,8 @@ test("add, complete, undo, move and drop a task", async ({ page }, testInfo) => 
   // Drop, which asks for confirmation in place.
   await schedule.getByRole("button", { name: `Actions for ${name}` }).click();
   await schedule.getByRole("button", { name: "Drop", exact: true }).click();
+  // Nothing is dropped until the confirmation.
+  await expect(row(schedule)).toBeVisible();
   await schedule.getByRole("button", { name: "Confirm drop" }).click();
   await expect(page.getByText(name)).toHaveCount(0);
 });
@@ -94,6 +96,12 @@ test("one column below 768px, a 2×2 grid above, and never a horizontal scroll",
     expect(Math.round(schedule.y)).toBe(Math.round(today.y));
     expect(schedule.x).toBeGreaterThanOrEqual(today.x + today.width);
   }
+
+  // The quadrant header sticks while scrolling the single column, and is plain in the grid.
+  const headerPosition = await region(page, "Do today")
+    .locator("header")
+    .evaluate((element) => getComputedStyle(element).position);
+  expect(headerPosition).toBe(width < 768 ? "sticky" : "static");
 
   const overflow = await page.evaluate(
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
