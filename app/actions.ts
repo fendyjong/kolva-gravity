@@ -28,3 +28,15 @@ export async function completeTask(id: number): Promise<ActionResult> {
 export async function reopenTask(id: number): Promise<ActionResult> {
   return run(() => getTaskStore().reopen(id));
 }
+
+export async function updateTask(id: number, description: string): Promise<ActionResult> {
+  return run(() => getTaskStore().update(id, description));
+}
+
+export async function moveTask(id: number, quadrant: number, position?: number): Promise<ActionResult> {
+  return run(() => getTaskStore().move(id, quadrant, position));
+}
+
+export async function dropTask(id: number): Promise<ActionResult> {
+  return run(() => getTaskStore().drop(id));
+}

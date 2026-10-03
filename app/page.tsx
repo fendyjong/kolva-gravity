@@ -1,6 +1,7 @@
 import { connection } from "next/server";
 import { DoneToday } from "@/components/DoneToday";
 import { Quadrant } from "@/components/Quadrant";
+import { RefreshOnFocus } from "@/components/RefreshOnFocus";
 import { formatSummary, formatTime } from "@/lib/format";
 import { QUADRANTS } from "@/lib/quadrants";
 import { appTimeZone, getTaskStore } from "@/lib/tasks";
@@ -21,6 +22,7 @@ export default async function Home() {
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 pb-12 pt-4">
+      <RefreshOnFocus />
       <header className="mb-4">
         <h1 className="text-xl font-semibold tracking-tight">Gravity</h1>
         <p className="text-sm text-zinc-600 dark:text-zinc-400">{formatSummary(summary)}</p>

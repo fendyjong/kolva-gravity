@@ -45,3 +45,8 @@ next-env.d.ts
 
 # SQLite data (the compose volume)
 /data/
+
+# Playwright
+/.e2e/
+/test-results/
+/playwright-report/

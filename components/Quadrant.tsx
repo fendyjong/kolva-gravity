@@ -50,7 +50,7 @@ export function Quadrant({
       </header>
       <ul>
         {visible.map((task) => (
-          <TaskRow key={task.id} task={task} />
+          <TaskRow key={task.id} task={task} count={tasks.length} />
         ))}
       </ul>
       {!first && tasks.length > VISIBLE_PER_QUADRANT && (
