@@ -1,0 +1,16 @@
+name: gravity
+
+services:
+  gravity:
+    build: .
+    restart: unless-stopped
+    ports:
+      # Host 17016 (portctl-registered gravity.local.zeven.day, host .30) → container 3000.
+      # Never change it by hand: `portctl resolve gravity` is the source of truth.
+      - "17016:3000"
+    volumes:
+      # Create ./data before the first `up` so it is owned by your user (uid 1000 = the image's `node`).
+      - ./data:/data
+    environment:
+      DATABASE_PATH: /data/gravity.db
+      APP_TZ: Asia/Jakarta

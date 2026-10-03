@@ -1,0 +1,11 @@
+.git
+.claude
+.pitcall
+.next
+node_modules
+data
+coverage
+e2e
+test-results
+playwright-report
+.e2e
