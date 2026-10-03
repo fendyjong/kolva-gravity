@@ -2,6 +2,7 @@ import type { Client } from "@modelcontextprotocol/client";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { openDatabase } from "@/lib/db";
 import { createTaskStore } from "@/lib/tasks";
+import { handleMcpRequest } from "./server";
 import { connectTestClient } from "./test-client";
 
 const NOW = new Date("2026-10-03T02:00:00.000Z");
@@ -116,5 +117,45 @@ describe("gravity MCP errors", () => {
   it("returns invalid input as an isError result", async () => {
     const result = await call("add_task", { description: 42, quadrant: "one" });
     expect(result.isError).toBe(true);
+  });
+});
+
+describe("gravity MCP nullable optional fields", () => {
+  it("accepts null for every optional input", async () => {
+    const a = await ok("add_task", { description: "a", quadrant: 2, issue_url: null, position: null });
+    expect(a).toMatchObject({ issue_url: null, existing: false });
+    const b = await ok("add_task", { description: "b", quadrant: 2 });
+    expect(await ok("get_matrix", { quadrant: null })).toHaveLength(2);
+    expect(await ok("move_task", { id: a.id, quadrant: 3, position: null })).toMatchObject({ quadrant: 3, position: 0 });
+    expect(await ok("move_task", { id: b.id, quadrant: 3, position: null })).toMatchObject({ quadrant: 3, position: 1 });
+  });
+});
+
+describe("gravity MCP Origin validation", () => {
+  const store = () => createTaskStore(openDatabase(":memory:"), { now: () => NOW, timeZone: "Asia/Jakarta" });
+  const initialize = (origin?: string) =>
+    new Request("http://localhost/mcp", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json, text/event-stream",
+        ...(origin ? { origin } : {}),
+      },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "initialize",
+        params: { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "t", version: "1" } },
+      }),
+    });
+
+  it("rejects a foreign Origin with 403", async () => {
+    const response = await handleMcpRequest(initialize("http://evil.example"), store());
+    expect(response.status).toBe(403);
+  });
+
+  it("serves the gravity origin, and requests without an Origin", async () => {
+    expect((await handleMcpRequest(initialize("https://gravity.local.zeven.day"), store())).status).toBe(200);
+    expect((await handleMcpRequest(initialize(), store())).status).toBe(200);
   });
 });

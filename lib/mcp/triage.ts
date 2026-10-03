@@ -14,5 +14,5 @@ export function triagePrompt(repos?: string): string {
     list.length > 0
       ? `Repos to shortlist issues from: ${list.join(", ")}.`
       : "No repos were given: skip step 5.";
-  return readFileSync(TEMPLATE, "utf8").replace("{{repos}}", reposLine);
+  return readFileSync(TEMPLATE, "utf8").replace("{{repos}}", () => reposLine);
 }

@@ -1,4 +1,4 @@
-import { McpServer, WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/server";
+import { createMcpHandler, McpServer } from "@modelcontextprotocol/server";
 import * as z from "zod";
 import { TaskError, type TaskStore, type TaskView } from "@/lib/tasks";
 import { triagePrompt } from "./triage";
@@ -51,9 +51,9 @@ export function createMcpServer(store: TaskStore): McpServer {
     {
       description:
         "Every open task, ordered by quadrant then position, with no visibility limit. carry_over_days counts the local days a quadrant-1 task has waited; demotions counts moves to a lower-priority quadrant.",
-      inputSchema: z.object({ quadrant: quadrantField.optional() }),
+      inputSchema: z.object({ quadrant: quadrantField.nullish() }),
     },
-    ({ quadrant }) => respond(() => store.getMatrix(quadrant).map(matrixEntry)),
+    ({ quadrant }) => respond(() => store.getMatrix(quadrant ?? undefined).map(matrixEntry)),
   );
 
   server.registerTool(
@@ -64,8 +64,8 @@ export function createMcpServer(store: TaskStore): McpServer {
       inputSchema: z.object({
         description: z.string().describe("One line, 1–200 characters."),
         quadrant: quadrantField,
-        issue_url: z.string().optional().describe("https://github.com/<owner>/<repo>/issues/<number>"),
-        position: positionField.optional(),
+        issue_url: z.string().nullish().describe("https://github.com/<owner>/<repo>/issues/<number>"),
+        position: positionField.nullish(),
       }),
     },
     (input) =>
@@ -89,7 +89,7 @@ export function createMcpServer(store: TaskStore): McpServer {
     {
       description:
         "Move an open task to another quadrant (to the bottom unless `position` is given), or reorder it within its own quadrant by passing that same quadrant and a `position`. A move to a higher-numbered quadrant counts as a demotion.",
-      inputSchema: z.object({ id: idField, quadrant: quadrantField, position: positionField.optional() }),
+      inputSchema: z.object({ id: idField, quadrant: quadrantField, position: positionField.nullish() }),
     },
     ({ id, quadrant, position }) => respond(() => store.move(id, quadrant, position)),
   );
@@ -146,13 +146,17 @@ export function createMcpServer(store: TaskStore): McpServer {
   return server;
 }
 
-/** Serves one stateless MCP request over Streamable HTTP with JSON responses. */
+const ALLOWED_ORIGIN = "https://gravity.local.zeven.day";
+
+/**
+ * Serves one stateless MCP request over Streamable HTTP with JSON responses. A browser-sent Origin must be gravity's
+ * own (DNS-rebinding protection); clients that send no Origin, like Claude Code, are served.
+ */
 export async function handleMcpRequest(request: Request, store: TaskStore): Promise<Response> {
-  const server = createMcpServer(store);
-  const transport = new WebStandardStreamableHTTPServerTransport({
-    sessionIdGenerator: undefined,
-    enableJsonResponse: true,
-  });
-  await server.connect(transport);
-  return transport.handleRequest(request);
+  const origin = request.headers.get("origin");
+  if (origin !== null && origin !== ALLOWED_ORIGIN) {
+    return new Response("Forbidden: unexpected Origin.", { status: 403 });
+  }
+  const handler = createMcpHandler(() => createMcpServer(store), { legacy: "stateless", responseMode: "json" });
+  return handler.fetch(request);
 }
