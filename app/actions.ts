@@ -1,0 +1,46 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { getTaskStore, TaskError } from "@/lib/tasks";
+
+export type ActionResult = { error: string | null };
+
+/** Runs one task-module change; a broken rule comes back as a message instead of an exception, and both outcomes re-render. */
+async function run(change: () => unknown): Promise<ActionResult> {
+  try {
+    change();
+  } catch (error) {
+    // Re-render on a broken rule too: the task may have been changed elsewhere, so the screen is stale.
+    if (error instanceof TaskError) {
+      revalidatePath("/");
+      return { error: error.message };
+    }
+    throw error;
+  }
+  revalidatePath("/");
+  return { error: null };
+}
+
+export async function addTask(quadrant: number, description: string): Promise<ActionResult> {
+  return run(() => getTaskStore().add({ description, quadrant }));
+}
+
+export async function completeTask(id: number): Promise<ActionResult> {
+  return run(() => getTaskStore().complete(id));
+}
+
+export async function reopenTask(id: number): Promise<ActionResult> {
+  return run(() => getTaskStore().reopen(id));
+}
+
+export async function updateTask(id: number, description: string): Promise<ActionResult> {
+  return run(() => getTaskStore().update(id, description));
+}
+
+export async function moveTask(id: number, quadrant: number, position?: number): Promise<ActionResult> {
+  return run(() => getTaskStore().move(id, quadrant, position));
+}
+
+export async function dropTask(id: number): Promise<ActionResult> {
+  return run(() => getTaskStore().drop(id));
+}

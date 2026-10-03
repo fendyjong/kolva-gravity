@@ -42,3 +42,11 @@ next-env.d.ts
 
 # git worktrees (Claude Code)
 /.claude/worktrees/
+
+# SQLite data (the compose volume)
+/data/
+
+# Playwright
+/.e2e/
+/test-results/
+/playwright-report/

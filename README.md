@@ -1,36 +1,85 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Gravity
 
-## Getting Started
+A one-person priority matrix with no due dates. Every task sits in one of four quadrants, and the top-left one — **Do today** — is a commitment: everything in it is due today. An LLM rearranges the matrix on demand over MCP.
 
-First, run the development server:
+It runs as one Docker container (Next.js + an MCP endpoint + SQLite) at `https://gravity.local.zeven.day`.
+
+## Develop
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
+pnpm dev          # http://localhost:3000, data in ./data/gravity.db
+pnpm test         # Vitest
+pnpm validate     # everything CI runs
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Deploy
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+The host port is claimed in the homelab port registry, never picked by hand:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+portctl resolve gravity   # https://gravity.local.zeven.day -> http://192.168.7.30:17016
+```
 
-## Learn More
+On host .30, from this repository:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+mkdir -p data                  # must exist before the first `up`, owned by your user
+docker compose up -d --build
+portctl generate               # (re)deploys the Traefik route
+curl -I https://gravity.local.zeven.day
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+The database lives in `./data/gravity.db` on the host (`/data/gravity.db` in the container).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Back up
 
-## Deploy on Vercel
+Everything is in `data/`. Stopping the container closes the database, which folds the write-ahead log into `gravity.db`. Stop, copy every database file (so the copy is complete even if a `gravity.db-wal` is ever left behind), and start again:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+docker compose stop
+mkdir -p "backup-$(date +%F)" && cp data/gravity.db* "backup-$(date +%F)/"
+docker compose start
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+To restore, stop the container, copy the files from the backup directory back into `data/`, and start it.
+
+## MCP
+
+Gravity serves MCP over Streamable HTTP at `https://gravity.local.zeven.day/mcp`: stateless, `POST` only, and without auth — anyone on the LAN or the WireGuard VPN can call it.
+
+Claude Code:
+
+```bash
+claude mcp add --transport http --scope user gravity https://gravity.local.zeven.day/mcp
+claude mcp list   # gravity should show as connected
+```
+
+Any other MCP client:
+
+```json
+{ "mcpServers": { "gravity": { "type": "http", "url": "https://gravity.local.zeven.day/mcp" } } }
+```
+
+Tools: `get_matrix`, `add_task`, `update_task`, `move_task`, `reorder_quadrant`, `complete_task`, `reopen_task`, `drop_task`. A broken rule comes back as an error result that says what is needed, e.g. `task 12 is completed; reopen it first`.
+
+## Triage
+
+With the `gravity` MCP server added to Claude Code (see above), ask it to rearrange the matrix:
+
+```
+/mcp__gravity__triage fendyjong/kolva-gravity,fendyjong/kolva-sim
+```
+
+The one argument, `repos`, is an optional comma-separated `owner/repo` list. The prompt (`lib/mcp/triage.md`) has the LLM:
+
+1. read the matrix;
+2. split or move down every quadrant-1 task carried over 1 day or more;
+3. promote tasks that keep getting put off;
+4. keep quadrant 1 at 5 tasks or fewer;
+5. shortlist **at most 10** of the most important open issues from `repos` with `gh` — never all of them, and running it again creates no duplicates;
+6. complete tasks whose issues have closed;
+7. reorder every quadrant;
+8. finish with a short summary of what moved and why.
+
+Steps 5 and 6 need the `gh` CLI, logged in, wherever the LLM runs.

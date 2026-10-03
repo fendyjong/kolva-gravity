@@ -1,0 +1,16 @@
+{
+  "bringup": null,
+  "validate": "pnpm install --frozen-lockfile && pnpm run validate",
+  "default_branch": "main",
+  "required_check": "ci",
+  "branch_prefix": "feat/",
+  "worktree_dir": ".claude/worktrees/",
+  "plan_dir": "docs/plans/",
+  "claim_expiry_hours": 24,
+  "regenerated_paths": [],
+  "migration_homes": [],
+  "refresh_commands": [
+    "mkdir -p data && docker compose up -d --build"
+  ],
+  "outbound_allowlist": []
+}
