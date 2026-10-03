@@ -9,7 +9,8 @@
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
-    "validate": "pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+    "e2e": "playwright test",
+    "validate": "pnpm lint && pnpm typecheck && pnpm test && playwright install chromium && pnpm e2e"
   },
   "dependencies": {
     "@modelcontextprotocol/server": "^2.2.0",
@@ -20,6 +21,7 @@
   },
   "devDependencies": {
     "@modelcontextprotocol/client": "^2.2.0",
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^24.19.1",
     "@types/react": "^19",
