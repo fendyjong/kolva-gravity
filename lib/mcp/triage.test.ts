@@ -18,6 +18,14 @@ describe("triagePrompt", () => {
     expect(triagePrompt("  ")).toContain("No repos were given: skip step 5.");
   });
 
+  it("keeps each issue to one task and never splits an issue-linked task", () => {
+    const text = triagePrompt("o/r");
+    expect(text).toContain(
+      "An issue is exactly one task. Never add a task without `issue_url` for work on an issue that already has a task.",
+    );
+    expect(text).toContain("A task with an `issue_url` is never split: move it down with `move_task`.");
+  });
+
   it("covers the spec's eight steps in order", () => {
     const text = triagePrompt("o/r");
     const markers = [
