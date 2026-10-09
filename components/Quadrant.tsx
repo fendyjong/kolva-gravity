@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Q1_WARN, VISIBLE_PER_QUADRANT } from "@/lib/limits";
+import { VISIBLE_PER_QUADRANT } from "@/lib/limits";
 import type { Quadrant as QuadrantNumber, TaskView } from "@/lib/tasks/types";
 import { AddTask } from "./AddTask";
 import { TaskRow } from "./TaskRow";
@@ -42,11 +42,6 @@ export function Quadrant({
         </h2>
         <span className="text-sm text-zinc-500 dark:text-zinc-400">{tasks.length} open</span>
         {hidden > 0 && <span className="text-sm text-zinc-500 dark:text-zinc-400">+{hidden} more</span>}
-        {first && tasks.length > Q1_WARN && (
-          <span className="text-sm font-medium text-red-700 dark:text-red-400">
-            Over {Q1_WARN} — move some down
-          </span>
-        )}
       </header>
       <ul>
         {visible.map((task) => (
