@@ -1,6 +1,6 @@
 # Gravity
 
-A one-person priority matrix with no due dates. Every task sits in one of four quadrants, and the top-left one — **Do today** — is a commitment: everything in it is due today. An LLM rearranges the matrix on demand over MCP.
+A one-person priority matrix with no due dates. Every task sits in one of four quadrants, and the top-left one — **Next version** — is the checklist of everything to finish before your next release. An LLM plans it on demand over MCP.
 
 It runs as one Docker container (Next.js + an MCP endpoint + SQLite) at `https://gravity.local.zeven.day`.
 
@@ -65,21 +65,23 @@ Tools: `get_matrix`, `add_task`, `update_task`, `move_task`, `reorder_quadrant`,
 
 ## Triage
 
-With the `gravity` MCP server added to Claude Code (see above), ask it to rearrange the matrix:
+Quadrant 1, **Next version**, is the checklist for your next release. Gravity knows nothing about deployments: you tick the list off and deploy by hand, at least once a week. Triage keeps the list current and small.
+
+With the `gravity` MCP server added to Claude Code (see above), run:
 
 ```
-/mcp__gravity__triage fendyjong/kolva-gravity,fendyjong/kolva-sim
+/mcp__gravity__triage fendyjong/ai-automatic-engagement,fendyjong/kolva-gravity
 ```
 
 The one argument, `repos`, is an optional comma-separated `owner/repo` list. The prompt (`lib/mcp/triage.md`) has the LLM:
 
 1. read the matrix;
-2. split or move down every quadrant-1 task carried over 1 day or more;
-3. promote tasks that keep getting put off;
-4. keep quadrant 1 at 5 tasks or fewer;
-5. shortlist **at most 10** of the most important open issues from `repos` with `gh` — never all of them, and running it again creates no duplicates;
-6. complete tasks whose issues have closed;
+2. complete tasks whose issues have closed;
+3. deal with tasks 7 days or more in Next version: urgent ones stay, issue-linked ones move to Schedule, others are split or moved down;
+4. move up tasks in Delegate and Later that keep getting put off;
+5. add every urgent issue from `repos` (`URGENT` in the title, or a `bug` hurting production), then the next issues of each repo's earliest open version milestone (e.g. `v1.x.x - …`), in dependency order, while Next version stays within a **10-point** budget (`size:S` 1, `size:M` 2, `size:L` 4, unsized 2);
+6. top up from Schedule while the budget allows;
 7. reorder every quadrant;
-8. finish with a short summary of what moved and why.
+8. finish with a short summary, including points used.
 
-Steps 5 and 6 need the `gh` CLI, logged in, wherever the LLM runs.
+Running it again creates no duplicates. Triage only reads GitHub; it never changes issues, labels or milestones. The budget and the 7-day threshold are constants in `lib/limits.ts`. Steps 2 and 5 need the `gh` CLI, logged in, wherever the LLM runs.

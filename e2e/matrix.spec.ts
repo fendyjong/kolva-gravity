@@ -7,31 +7,31 @@ function region(page: Page, name: string) {
 test("add, complete, undo, move and drop a task", async ({ page }, testInfo) => {
   const name = `Write the report (${testInfo.project.name})`;
   await page.goto("/");
-  const today = region(page, "Do today");
+  const version = region(page, "Next version");
   const schedule = region(page, "Schedule");
-  const row = (where: typeof today) => where.getByRole("button", { name, exact: true });
+  const row = (where: typeof version) => where.getByRole("button", { name, exact: true });
 
   // Add: Enter adds to the bottom of the quadrant.
-  const input = today.getByRole("textbox", { name: "Add task to Do today" });
+  const input = version.getByRole("textbox", { name: "Add task to Next version" });
   await input.fill(name);
   await input.press("Enter");
-  await expect(row(today)).toBeVisible();
+  await expect(row(version)).toBeVisible();
   await expect(input).toHaveValue("");
 
   // Complete: the row leaves the quadrant and shows under Done today.
-  await today.getByRole("checkbox", { name: `Complete ${name}` }).click();
+  await version.getByRole("checkbox", { name: `Complete ${name}` }).click();
   await expect(region(page, "Done today").getByText(name)).toBeVisible();
-  await expect(row(today)).toHaveCount(0);
+  await expect(row(version)).toHaveCount(0);
 
   // Undo: reopens it.
   await region(page, "Done today").getByRole("button", { name: `Undo ${name}` }).click();
-  await expect(row(today)).toBeVisible();
+  await expect(row(version)).toBeVisible();
 
   // Move down a quadrant through the inline ⋯ menu.
-  await today.getByRole("button", { name: `Actions for ${name}` }).click();
-  await today.getByRole("button", { name: "Move down a quadrant" }).click();
+  await version.getByRole("button", { name: `Actions for ${name}` }).click();
+  await version.getByRole("button", { name: "Move down a quadrant" }).click();
   await expect(row(schedule)).toBeVisible();
-  await expect(row(today)).toHaveCount(0);
+  await expect(row(version)).toHaveCount(0);
 
   // Drop, which asks for confirmation in place.
   await schedule.getByRole("button", { name: `Actions for ${name}` }).click();
@@ -82,23 +82,23 @@ test("one column below 768px, a 2×2 grid above, and never a horizontal scroll",
   await input.fill(`Read https://example.com/${"very-long-path-segment-".repeat(6)} (${testInfo.project.name})`);
   await input.press("Enter");
 
-  const today = await region(page, "Do today").boundingBox();
+  const version = await region(page, "Next version").boundingBox();
   const schedule = await region(page, "Schedule").boundingBox();
-  expect(today).not.toBeNull();
+  expect(version).not.toBeNull();
   expect(schedule).not.toBeNull();
-  if (!today || !schedule) return;
+  if (!version || !schedule) return;
 
   const width = page.viewportSize()?.width ?? 0;
   if (width < 768) {
-    expect(schedule.y).toBeGreaterThanOrEqual(today.y + today.height);
-    expect(Math.round(schedule.x)).toBe(Math.round(today.x));
+    expect(schedule.y).toBeGreaterThanOrEqual(version.y + version.height);
+    expect(Math.round(schedule.x)).toBe(Math.round(version.x));
   } else {
-    expect(Math.round(schedule.y)).toBe(Math.round(today.y));
-    expect(schedule.x).toBeGreaterThanOrEqual(today.x + today.width);
+    expect(Math.round(schedule.y)).toBe(Math.round(version.y));
+    expect(schedule.x).toBeGreaterThanOrEqual(version.x + version.width);
   }
 
   // The quadrant header sticks while scrolling the single column, and is plain in the grid.
-  const headerPosition = await region(page, "Do today")
+  const headerPosition = await region(page, "Next version")
     .locator("header")
     .evaluate((element) => getComputedStyle(element).position);
   expect(headerPosition).toBe(width < 768 ? "sticky" : "static");

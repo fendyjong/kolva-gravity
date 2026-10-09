@@ -92,6 +92,20 @@ describe("gravity MCP tools", () => {
     expect((await ok("drop_task", { id: a.id })).dropped_at).toBe(NOW.toISOString());
     expect(await ok("get_matrix", {})).toEqual([]);
   });
+
+  it("describes quadrant 1 as Next version", async () => {
+    const { tools } = await client.listTools();
+    const quadrant = (name: string) =>
+      (tools.find((tool) => tool.name === name)?.inputSchema.properties?.quadrant as { description?: string })
+        ?.description;
+    const expected =
+      "1 = Next version (the checklist for the next release), 2 = Schedule, 3 = Delegate, 4 = Later. Priority 1 > 2 > 3 > 4.";
+    expect(quadrant("add_task")).toBe(expected);
+    expect(quadrant("move_task")).toBe(expected);
+    expect(tools.find((tool) => tool.name === "get_matrix")?.description).toContain(
+      "carry_over_days counts the local days a quadrant-1 task has been in Next version",
+    );
+  });
 });
 
 describe("gravity MCP errors", () => {

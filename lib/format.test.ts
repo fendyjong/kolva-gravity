@@ -3,24 +3,25 @@ import { carryOverTone, formatSummary, formatTime, issueLabel } from "./format";
 
 describe("formatSummary", () => {
   it("formats the full summary line", () => {
-    expect(
-      formatSummary({ doneToday: 2, totalToday: 5, carriedOver: 1, oldestOpenDays: 12 }),
-    ).toBe("Today 2/5 done · 1 carried over · oldest open 12d");
+    expect(formatSummary({ versionOpen: 6, versionStale: 1, oldestOpenDays: 12 })).toBe(
+      "Next version 6 open · 1 over a week · oldest open 12d",
+    );
   });
 
   it("leaves out oldest open when nothing is open", () => {
-    expect(
-      formatSummary({ doneToday: 0, totalToday: 0, carriedOver: 0, oldestOpenDays: null }),
-    ).toBe("Today 0/0 done · 0 carried over");
+    expect(formatSummary({ versionOpen: 0, versionStale: 0, oldestOpenDays: null })).toBe(
+      "Next version 0 open · 0 over a week",
+    );
   });
 });
 
 describe("carryOverTone", () => {
-  it("shows nothing at 0, amber at 1–2 and red at 3 or more", () => {
+  it("shows nothing below 5 days, amber at 5–6 and red at 7 or more", () => {
     expect(carryOverTone(0)).toBeNull();
-    expect(carryOverTone(1)).toBe("amber");
-    expect(carryOverTone(2)).toBe("amber");
-    expect(carryOverTone(3)).toBe("red");
+    expect(carryOverTone(4)).toBeNull();
+    expect(carryOverTone(5)).toBe("amber");
+    expect(carryOverTone(6)).toBe("amber");
+    expect(carryOverTone(7)).toBe("red");
     expect(carryOverTone(40)).toBe("red");
   });
 });

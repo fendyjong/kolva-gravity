@@ -82,8 +82,8 @@ export function TaskRow({ task, count }: { task: TaskView; count: number }) {
           )}
           <div className="flex flex-wrap gap-1.5 px-1 pb-1.5">
             {tone && (
-              <Badge label="Carried over" tone={tone}>
-                {task.carry_over_days}d over
+              <Badge label="In Next version" tone={tone}>
+                {task.carry_over_days}d in version
               </Badge>
             )}
             <Badge label="Age">{task.age_days}d</Badge>

@@ -11,7 +11,7 @@ const monaSans = localFont({
 
 export const metadata: Metadata = {
   title: "Gravity",
-  description: "A priority matrix where the top-left quadrant is due today.",
+  description: "A priority matrix whose top-left quadrant is the checklist for the next version.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
