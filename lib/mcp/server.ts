@@ -135,7 +135,7 @@ export function createMcpServer(store: TaskStore): McpServer {
       description:
         "Plan the next version: complete tasks whose issues closed, take stale work out, add every urgent issue and the next slice of each repo's version milestone.",
       argsSchema: z.object({
-        repos: z.string().optional().describe("Comma-separated owner/repo list, e.g. fendyjong/kolva-gravity,fendyjong/kolva-sim"),
+        repos: z.string().optional().describe("Comma-separated owner/repo list, e.g. fendyjong/ai-automatic-engagement,fendyjong/kolva-gravity"),
       }),
     },
     ({ repos }) => ({

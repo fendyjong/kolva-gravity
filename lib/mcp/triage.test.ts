@@ -73,6 +73,30 @@ describe("triagePrompt", () => {
     expect(positions.every((position) => position >= 0)).toBe(true);
     expect([...positions].sort((a, b) => a - b)).toEqual(positions);
   });
+
+  it("never puts a task moved out in this run straight back, and names issues by their web URL", () => {
+    const text = triagePrompt("o/r");
+    expect(text).toContain("whose task is completed or dropped; or whose task was moved out of quadrant 1 in this run.");
+    expect(text).toContain("the issue's web URL as `issue_url` (`url` from `gh issue list`, `html_url` from `gh api`)");
+  });
+
+  it("lists milestone issues and sub-issues oldest first across every page", () => {
+    const text = triagePrompt("o/r");
+    expect(text).toContain(
+      'gh api --paginate "repos/<owner/repo>/issues?milestone=<number>&state=open&per_page=100&sort=created&direction=asc"',
+    );
+    expect(text).toContain('gh api --paginate "repos/<owner/repo>/issues/<number>/sub_issues?per_page=100"');
+  });
+
+  it("names each bug judged urgent in the summary", () => {
+    expect(triagePrompt("o/r")).toContain("each `bug` judged urgent, with a one-line reason;");
+  });
+
+  it("only ever reads GitHub", () => {
+    const text = triagePrompt("o/r");
+    expect(text).not.toMatch(/gh (issue|pr|label|api) (edit|close|comment|create|reopen|delete|lock|transfer)\b/);
+    expect(text).not.toMatch(/--method|(^|\s)-X\s|(^|\s)-[fF]\s|--field|--raw-field|--input/m);
+  });
 });
 
 describe("the triage prompt over MCP", () => {
@@ -108,6 +132,14 @@ describe("the triage prompt over MCP", () => {
     const triage = prompts.find((prompt) => prompt.name === "triage");
     expect(triage?.description).toBe(
       "Plan the next version: complete tasks whose issues closed, take stale work out, add every urgent issue and the next slice of each repo's version milestone.",
+    );
+  });
+
+  it("gives a repos example that names repos that exist", async () => {
+    const { prompts } = await client.listPrompts();
+    const triage = prompts.find((prompt) => prompt.name === "triage");
+    expect(triage?.arguments?.[0]?.description).toBe(
+      "Comma-separated owner/repo list, e.g. fendyjong/ai-automatic-engagement,fendyjong/kolva-gravity",
     );
   });
 });

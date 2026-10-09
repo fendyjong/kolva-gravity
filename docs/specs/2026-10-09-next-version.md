@@ -1,7 +1,8 @@
 # Spec: Next version — quadrant 1 becomes the release checklist, and triage fills it
 
-**Version:** 1
-**Status:** approved (2026-10-09)
+**Version:** 2
+**Changes since 1:** final-review fixes to the triage prompt — step 5b never re-adds a task moved out of quadrant 1 in the same run; an issue's `issue_url` is its web URL; step 3 may read an issue body to judge urgency; milestone and sub-issue listings are paginated, oldest first; the version-milestone restriction names sub-issues; the summary lists each bug judged urgent with a reason; the `repos` example names repos that exist.
+**Status:** version 1 approved (2026-10-09); version 2 awaiting the user's confirmation
 **Work issue:** #10
 **Builds on:** Gravity v1 (#1), spec version 3 in `docs/specs/2026-10-02-gravity-v1.md`
 
@@ -72,7 +73,7 @@ The quadrant header loses the "Over N — move some down" text.
 - `lib/mcp/server.ts`:
   - the quadrant field: `1 = Next version (the checklist for the next release), 2 = Schedule, 3 = Delegate, 4 = Later. Priority 1 > 2 > 3 > 4.`
   - `get_matrix`: carry_over_days counts the local days a quadrant-1 task has been in Next version.
-  - the `triage` prompt description: `Plan the next version: complete tasks whose issues closed, take stale work out, add every urgent issue and the next slice of each repo's version milestone.` Its `repos` argument is unchanged.
+  - the `triage` prompt description: `Plan the next version: complete tasks whose issues closed, take stale work out, add every urgent issue and the next slice of each repo's version milestone.` Its `repos` argument is unchanged except that its description's example becomes `fendyjong/ai-automatic-engagement,fendyjong/kolva-gravity`.
 - `README.md`: the intro paragraph and the Triage section describe Next version and the new steps; the example uses repos that exist (`fendyjong/ai-automatic-engagement,fendyjong/kolva-gravity`).
 - `docs/specs/2026-10-02-gravity-v1.md`: bumped to version 4 with `**Changes since 3:**` naming this spec, and updated to match it: Goal, Quadrants table, rules 5 and 13, summary line, the MCP quadrant wording and the `triage` prompt section.
 
@@ -95,13 +96,13 @@ The quadrant header loses the "Over N — move some down" text.
 - **Points**: `size:S` = 1, `size:M` = 2, `size:L` = 4. An issue with no size label, and a task without an issue, count 2.
 - **Points used** is the sum of the points of the open quadrant-1 tasks at that moment, so urgent issues and the user's own tasks count toward it.
 - **Budget**: roadmap work (steps 5b and 6) is added only while points used, including the task being added, stays within `{{budget}}`. Urgent issues are added regardless, and nothing is moved out of quadrant 1 to make room.
-- **Adding an issue** means `add_task` with the issue title as the description (one line, cut to 200 characters), quadrant 1, and the issue URL as `issue_url`. When it returns `existing: true`: a task open in quadrant 1 needs nothing; a task open in another quadrant is moved up with `move_task` to quadrant 1; a completed or dropped task is left alone and named in the summary.
+- **Adding an issue** means `add_task` with the issue title as the description (one line, cut to 200 characters), quadrant 1, and the issue's web URL as `issue_url` (`url` from `gh issue list`, `html_url` from `gh api`). When it returns `existing: true`: a task open in quadrant 1 needs nothing; a task open in another quadrant is moved up with `move_task` to quadrant 1; a completed or dropped task is left alone and named in the summary.
 
 ### Steps, in order
 
 1. **Read** every open task with `get_matrix`.
 2. **Check GitHub.** For each open task with an `issue_url`, in any quadrant, run `gh issue view <issue_url> --json state,title,labels`. Complete the task with `complete_task` when the issue is closed. Keep each issue's labels and title for points and urgency.
-3. **Stale tasks.** For each quadrant-1 task whose `carry_over_days` is `{{stale_days}}` or more:
+3. **Stale tasks.** For each quadrant-1 task whose `carry_over_days` is `{{stale_days}}` or more (judge urgency from the labels and title kept in step 2, and read the body with `gh issue view <issue_url> --json body` when they do not settle it):
    - urgent: it stays; the summary names it as holding up the version;
    - not urgent, with an `issue_url`: move it to quadrant 2 with `move_task`. It is never split;
    - without an `issue_url`: split it into smaller tasks (add each part to quadrant 1 with `add_task`, then drop the original with `drop_task`), or move it to quadrant 2.
@@ -110,10 +111,10 @@ The quadrant header loses the "Over N — move some down" text.
    - **5a. Urgent issues, without limit.** For each repo, run `gh issue list --repo <r> --state open --search "URGENT in:title" --limit 100 --json number,title,url,labels` and `gh issue list --repo <r> --state open --label bug --limit 200 --json number,title,url,labels`. Read a bug with `gh issue view <url> --json body` when its title alone does not show whether production is hurt. Add every urgent issue.
    - **5b. Roadmap issues, within the budget.**
       - **Version milestones.** `gh api "repos/<r>/milestones?state=open&per_page=100"`. A version milestone's title starts with `v` and a digit, e.g. `v1.x.x - Modular Monolith`. Order them by the leading version compared part by part, with `x` counting as 0 (`v1.x.x` comes before `v1.1.x`), then by milestone number.
-      - **Candidates** are the open issues of the repo's first version milestone: `gh api "repos/<r>/issues?milestone=<number>&state=open&per_page=100"`, which returns labels, body, `sub_issues_summary` and `issue_dependencies_summary`; entries with a `pull_request` field are pull requests and are ignored. When every open issue of a milestone is skipped or already in quadrant 1, the repo's next version milestone supplies candidates.
-      - **Skip** an issue that is labelled `status:blocked` or `status:draft`; that is blocked by an open issue not in quadrant 1 (`issue_dependencies_summary.blocked_by` above 0, the blockers from `gh api repos/<r>/issues/<n>/dependencies/blocked_by`, or `depends on #N` in its body with #N open); or whose task is completed or dropped. An issue with open sub-issues (`sub_issues_summary.completed` below `.total`) is never added: its open sub-issues, from `gh api repos/<r>/issues/<n>/sub_issues`, are candidates in its place, in that order.
+      - **Candidates** are the open issues of the repo's first version milestone: `gh api --paginate "repos/<r>/issues?milestone=<number>&state=open&per_page=100&sort=created&direction=asc"`, which returns labels, body, `sub_issues_summary` and `issue_dependencies_summary`; entries with a `pull_request` field are pull requests and are ignored. When every open issue of a milestone is skipped or already in quadrant 1, the repo's next version milestone supplies candidates.
+      - **Skip** an issue that is labelled `status:blocked` or `status:draft`; that is blocked by an open issue not in quadrant 1 (`issue_dependencies_summary.blocked_by` above 0, the blockers from `gh api repos/<r>/issues/<n>/dependencies/blocked_by`, or `depends on #N` in its body with #N open); whose task is completed or dropped; or whose task was moved out of quadrant 1 in this run. An issue with open sub-issues (`sub_issues_summary.completed` below `.total`) is never added: its open sub-issues, from `gh api --paginate "repos/<r>/issues/<n>/sub_issues?per_page=100"`, are candidates in its place, in that order.
       - **Order**: an issue before the issues that depend on it, then the lowest issue number. An issue whose task has `demotions` of 1 or more goes after every other candidate in its milestone.
-      - **A repo with no version milestone** supplies candidates the LLM picks from `gh issue list --repo <r> --state open --limit 200 --json number,title,url,labels,updatedAt` by labels, size and recency, with the same skips. A repo that has version milestones never takes roadmap issues from any other milestone or from issues without one.
+      - **A repo with no version milestone** supplies candidates the LLM picks from `gh issue list --repo <r> --state open --limit 200 --json number,title,url,labels,updatedAt` by labels, size and recency, with the same skips. A repo that has version milestones takes roadmap issues only from its version milestones (including the open sub-issues of their issues), never from any other milestone or from issues without a milestone.
       - **Turns**: take one candidate per repo per turn, in the order `repos` lists them. Add a candidate when it fits the budget. When one does not fit, that repo is done for this run. Stop when every repo is done.
 6. **Top up from Schedule.** In order from the top, move open quadrant-2 tasks into quadrant 1 with `move_task` while they fit the budget, skipping any task moved out of quadrant 1 in this run. Stop at the first that does not fit. This step runs even when no repos were given.
 7. **Reorder** each quadrant with `reorder_quadrant`, calling `get_matrix` again first. Quadrant 1: urgent tasks first, then dependencies before the tasks that depend on them, then the rest. Other quadrants: most important first.
@@ -122,6 +123,7 @@ The quadrant header loses the "Over N — move some down" text.
    - what moved out of Next version, and why;
    - what was added, and why (urgent, which milestone, picked, or from Schedule);
    - points used out of `{{budget}}`;
+   - each `bug` judged urgent, with a one-line reason;
    - urgent tasks at `{{stale_days}}`+ days, holding up the version;
    - open issues whose tasks are completed or dropped in Gravity;
    - issue-linked tasks moved out in this run that had been moved out before (`demotions` was already 1 or more): suggest splitting the issue on GitHub.
