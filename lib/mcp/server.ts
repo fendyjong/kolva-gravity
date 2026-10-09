@@ -9,7 +9,7 @@ const idField = z.number().int().describe("Task id.");
 const quadrantField = z
   .number()
   .int()
-  .describe("1 = Do today (everything here is due today), 2 = Schedule, 3 = Delegate, 4 = Later. Priority 1 > 2 > 3 > 4.");
+  .describe("1 = Next version (the checklist for the next release), 2 = Schedule, 3 = Delegate, 4 = Later. Priority 1 > 2 > 3 > 4.");
 const positionField = z
   .number()
   .int()
@@ -50,7 +50,7 @@ export function createMcpServer(store: TaskStore): McpServer {
     "get_matrix",
     {
       description:
-        "Every open task, ordered by quadrant then position, with no visibility limit. carry_over_days counts the local days a quadrant-1 task has waited; demotions counts moves to a lower-priority quadrant.",
+        "Every open task, ordered by quadrant then position, with no visibility limit. carry_over_days counts the local days a quadrant-1 task has been in Next version; demotions counts moves to a lower-priority quadrant.",
       inputSchema: z.object({ quadrant: quadrantField.nullish() }),
     },
     ({ quadrant }) => respond(() => store.getMatrix(quadrant ?? undefined).map(matrixEntry)),
@@ -133,7 +133,7 @@ export function createMcpServer(store: TaskStore): McpServer {
     {
       title: "Triage the matrix",
       description:
-        "Rearrange the matrix: deal with carried-over tasks, promote what keeps getting put off, keep quadrant 1 small, and shortlist at most 10 GitHub issues from `repos`.",
+        "Plan the next version: complete tasks whose issues closed, take stale work out, add every urgent issue and the next slice of each repo's version milestone.",
       argsSchema: z.object({
         repos: z.string().optional().describe("Comma-separated owner/repo list, e.g. fendyjong/kolva-gravity,fendyjong/kolva-sim"),
       }),
