@@ -1,4 +1,5 @@
 import type { DatabaseSync, SQLOutputValue } from "node:sqlite";
+import { VERSION_STALE_DAYS } from "@/lib/limits";
 import { localDate, localDaysBetween } from "./dates";
 import {
   TaskError,
@@ -299,12 +300,10 @@ export function createTaskStore(db: DatabaseSync, { now, timeZone }: TaskStoreOp
 
     getSummary() {
       const open = getMatrix();
-      const q1 = open.filter((task) => task.quadrant === 1);
-      const doneToday = getDoneToday().filter((task) => task.quadrant === 1).length;
+      const version = open.filter((task) => task.quadrant === 1);
       return {
-        doneToday,
-        totalToday: doneToday + q1.length,
-        carriedOver: q1.filter((task) => task.carry_over_days >= 1).length,
+        versionOpen: version.length,
+        versionStale: version.filter((task) => task.carry_over_days >= VERSION_STALE_DAYS).length,
         oldestOpenDays: open.length === 0 ? null : Math.max(...open.map((task) => task.age_days)),
       };
     },

@@ -38,15 +38,13 @@ export interface AddResult {
   existing: boolean;
 }
 
-/** The summary line: `Today X/Y done · C carried over · oldest open Nd`. */
+/** The summary line: `Next version N open · S over a week · oldest open Dd`. */
 export interface Summary {
-  /** X: quadrant-1 tasks completed today (local date). */
-  doneToday: number;
-  /** Y: X + the number of open quadrant-1 tasks. */
-  totalToday: number;
-  /** C: open quadrant-1 tasks with a carry-over of 1 or more. */
-  carriedOver: number;
-  /** N: the largest age among open tasks; null when nothing is open. */
+  /** N: open quadrant-1 tasks. */
+  versionOpen: number;
+  /** S: open quadrant-1 tasks with a carry-over of VERSION_STALE_DAYS or more. */
+  versionStale: number;
+  /** D: the largest age among open tasks; null when nothing is open. */
   oldestOpenDays: number | null;
 }
 

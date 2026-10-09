@@ -355,27 +355,27 @@ describe("done today and the summary", () => {
     expect(store.getDoneToday().map((task) => task.id)).toEqual([b.id, a.id]);
   });
 
-  it("counts X/Y done, carried over, and the oldest open age", () => {
-    at("2026-10-01T02:00:00.000Z");
-    add("old", 1);
+  it("counts open Next version tasks, those in it 7 days or more, and the oldest open age", () => {
+    at("2026-09-26T16:59:00.000Z"); // 23:59 WIB, 26 Sep: 7 local days before 3 Oct
+    add("seven days", 1);
+    at("2026-09-26T17:01:00.000Z"); // 00:01 WIB, 27 Sep: 6 local days before 3 Oct
+    add("six days", 1);
     at(START);
     add("fresh", 1);
     const done = add("done", 1);
     add("elsewhere", 3);
     store.complete(done.id);
     expect(store.getSummary()).toEqual({
-      doneToday: 1,
-      totalToday: 3,
-      carriedOver: 1,
-      oldestOpenDays: 2,
+      versionOpen: 3,
+      versionStale: 1,
+      oldestOpenDays: 7,
     });
   });
 
   it("leaves oldestOpenDays null when nothing is open", () => {
     expect(store.getSummary()).toEqual({
-      doneToday: 0,
-      totalToday: 0,
-      carriedOver: 0,
+      versionOpen: 0,
+      versionStale: 0,
       oldestOpenDays: null,
     });
   });

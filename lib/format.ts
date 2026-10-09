@@ -1,19 +1,17 @@
+import { VERSION_AMBER_DAYS, VERSION_STALE_DAYS } from "@/lib/limits";
 import type { Summary } from "@/lib/tasks/types";
 
-/** `Today X/Y done · C carried over · oldest open Nd` (the last part only when something is open). */
+/** `Next version N open · S over a week · oldest open Dd` (the last part only when something is open). */
 export function formatSummary(summary: Summary): string {
-  const parts = [
-    `Today ${summary.doneToday}/${summary.totalToday} done`,
-    `${summary.carriedOver} carried over`,
-  ];
+  const parts = [`Next version ${summary.versionOpen} open`, `${summary.versionStale} over a week`];
   if (summary.oldestOpenDays !== null) parts.push(`oldest open ${summary.oldestOpenDays}d`);
   return parts.join(" · ");
 }
 
-/** Carry-over badge colour: none at 0, amber at 1–2, red at 3 or more. */
+/** Badge colour (spec rule 5): none below VERSION_AMBER_DAYS, amber up to VERSION_STALE_DAYS, red from there. */
 export function carryOverTone(days: number): "amber" | "red" | null {
-  if (days >= 3) return "red";
-  if (days >= 1) return "amber";
+  if (days >= VERSION_STALE_DAYS) return "red";
+  if (days >= VERSION_AMBER_DAYS) return "amber";
   return null;
 }
 
