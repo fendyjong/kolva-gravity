@@ -13,7 +13,7 @@
     "validate": "pnpm lint && pnpm typecheck && pnpm test && playwright install chromium && pnpm e2e"
   },
   "dependencies": {
-    "@modelcontextprotocol/server": "^2.2.0",
+    "@modelcontextprotocol/server": "^2.3.0",
     "next": "16.3.8",
     "react": "19.2.8",
     "react-dom": "19.2.8",
